@@ -80,6 +80,20 @@ def test_cc_and_bcc(spark):
     assert row.bcc_addresses == ["a@enron.com", "b@enron.com"]
 
 
+def test_display_names_are_stripped_from_addresses(spark):
+    headers = [
+        "Message-ID: <1.2.JavaMail.evans@thyme>",
+        "Date: Mon, 14 May 2001 16:39:00 -0700 (PDT)",
+        "From: legal <.taylor@enron.com>",
+        "To: Mark Taylor <Mark.Taylor@enron.com>, sara.shackleton@enron.com",
+        "Subject: Agreement",
+    ]
+    row = parse_one(spark, make_message(headers))
+
+    assert row.sender == ".taylor@enron.com"
+    assert row.to_addresses == ["mark.taylor@enron.com", "sara.shackleton@enron.com"]
+
+
 def test_x_to_header_is_not_read_as_to(spark):
     headers = [h for h in STANDARD_HEADERS if not h.startswith("To:")]
     assert parse_one(spark, make_message(headers)).to_addresses == []

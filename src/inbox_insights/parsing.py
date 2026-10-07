@@ -47,9 +47,20 @@ def extract_header(headers: Column, name: str) -> Column:
     return F.when(value != "", value)
 
 
+def normalise_address(raw: Column) -> Column:
+    """
+    Lower-case and trim one address, keeping only the part inside <...> if present.
+
+    Some Enron headers carry a display name, e.g. "legal <.taylor@enron.com>".
+    """
+    cleaned = F.lower(F.trim(raw))
+    bracketed = F.regexp_extract(cleaned, r"<([^>]*)>", 1)
+    return F.when(bracketed != "", F.trim(bracketed)).otherwise(cleaned)
+
+
 def parse_address_list(raw: Column) -> Column:
-    """Turn a comma separated header value into a lower-cased array of addresses."""
-    tokens = F.transform(F.split(F.coalesce(raw, F.lit("")), ","), lambda t: F.lower(F.trim(t)))
+    """Turn a comma separated header value into an array of normalised addresses."""
+    tokens = F.transform(F.split(F.coalesce(raw, F.lit("")), ","), normalise_address)
     return F.filter(tokens, lambda t: t != "")
 
 
@@ -104,7 +115,7 @@ def parse_emails(raw: DataFrame) -> DataFrame:
         date_raw.alias("date_raw"),
         sent_at.alias("sent_at"),
         sent_at_local.alias("sent_at_local"),
-        F.lower(extract_header(F.col("_headers"), "From")).alias("sender"),
+        normalise_address(extract_header(F.col("_headers"), "From")).alias("sender"),
         parse_address_list(extract_header(F.col("_headers"), "To")).alias("to_addresses"),
         parse_address_list(extract_header(F.col("_headers"), "Cc")).alias("cc_addresses"),
         parse_address_list(extract_header(F.col("_headers"), "Bcc")).alias("bcc_addresses"),
