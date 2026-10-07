@@ -1,0 +1,34 @@
+resources:
+  jobs:
+    inbox_insights_pipeline:
+      name: inbox-insights-pipeline
+      description: Bronze to gold refresh of the Enron email lakehouse.
+
+      # Weekly refresh. Kept paused: Free Edition has a daily compute quota, so the
+      # job is triggered by hand and the schedule documents the intended cadence.
+      schedule:
+        quartz_cron_expression: "0 0 6 ? * MON"
+        timezone_id: America/Chicago
+        pause_status: PAUSED
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+
+      # No cluster is defined, so each task runs on serverless compute.
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../notebooks/00_setup.py
+
+        - task_key: bronze_ingest
+          depends_on:
+            - task_key: setup
+          notebook_task:
+            notebook_path: ../notebooks/01_bronze_ingest.py
+
+        - task_key: silver_clean
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../notebooks/02_silver_clean.py

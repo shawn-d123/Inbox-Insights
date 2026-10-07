@@ -43,7 +43,9 @@ def extract_header(headers: Column, name: str) -> Column:
     "X-To:", and only the header block is searched, so "To:" lines inside a
     forwarded message in the body are ignored.
     """
-    value = F.trim(F.regexp_extract(headers, rf"(?im)^{name}:[ \t]*(.*)$", 1))
+    # [^\n]* rather than (.*)$: on Databricks serverless "." can match newlines
+    # under (?m), which made this capture every header after the one asked for.
+    value = F.trim(F.regexp_extract(headers, rf"(?im)^{name}:[ \t]*([^\n]*)", 1))
     return F.when(value != "", value)
 
 

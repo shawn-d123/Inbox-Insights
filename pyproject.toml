@@ -31,6 +31,8 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Globals that Databricks injects into every notebook.
+builtins = ["spark", "dbutils", "display"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

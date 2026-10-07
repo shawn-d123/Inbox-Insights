@@ -32,9 +32,12 @@ _QUOTE_MARKERS = [
     # ...and with both on one line: '"Mahon, Laurie" <x@y.com> on 01/04/2001 01:46:39 PM'
     rf"[^\n]*\S[ \t]+(?:on[ \t]+)?{_LOTUS_DATE}[ \t]*\n(?:[ \t]*\n)*[ \t]*To:",
     # Conventional "-- " signature delimiter on its own line.
-    r"--[ \t]*$",
+    r"--[ \t]*(?:\n|$)",
 ]
-_QUOTE_START = r"(?ms)^[ \t]*(?:" + "|".join(_QUOTE_MARKERS) + r").*\z"
+# Markers avoid "." and line-end "$" because Databricks serverless treats them
+# differently from open-source Spark under (?m). The trailing (?s).* is meant to
+# run to the end of the body.
+_QUOTE_START = r"(?ms)^[ \t]*(?:" + "|".join(_QUOTE_MARKERS) + r").*"
 
 # Quoted-printable escapes worth turning back into real characters. The 0x91-0x97
 # codes are Windows smart quotes and dashes, which Enron mail is full of.
