@@ -17,6 +17,8 @@ dependencies = []
 dev = [
     "pyspark==4.2.0",
     "numpy",  # needed by pyspark.ml
+    "pandas<3",  # PySpark 4.2 does not fully support pandas 3 yet
+    "matplotlib",
     "pytest>=8",
     "ruff>=0.6",
 ]

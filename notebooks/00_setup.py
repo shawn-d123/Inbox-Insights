@@ -32,4 +32,9 @@ spark.sql(
     "COMMENT 'Scratch space MLflow uses when saving Spark ML models'"
 )
 
+spark.sql(
+    "CREATE VOLUME IF NOT EXISTS gold.reports "
+    "COMMENT 'Charts and headline numbers exported for the README'"
+)
+
 display(spark.sql(f"SHOW SCHEMAS IN {catalog}"))

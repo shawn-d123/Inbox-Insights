@@ -57,3 +57,9 @@ resources:
             - task_key: train_priority_model
           notebook_task:
             notebook_path: ../notebooks/06_governance.py
+
+        - task_key: export_findings
+          depends_on:
+            - task_key: governance
+          notebook_task:
+            notebook_path: ../notebooks/07_export_findings.py
