@@ -27,4 +27,9 @@ spark.sql(
     "COMMENT 'Source files, including the Kaggle Enron emails.csv'"
 )
 
+spark.sql(
+    "CREATE VOLUME IF NOT EXISTS gold.ml_artifacts "
+    "COMMENT 'Scratch space MLflow uses when saving Spark ML models'"
+)
+
 display(spark.sql(f"SHOW SCHEMAS IN {catalog}"))
