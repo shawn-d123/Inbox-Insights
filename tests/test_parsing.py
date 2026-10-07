@@ -17,6 +17,7 @@ STANDARD_HEADERS = [
     "To: tim.belden@enron.com",
     "Subject: Forecast",
     "Mime-Version: 1.0",
+    "Content-Transfer-Encoding: 7bit",
     "X-From: Phillip K Allen",
     "X-To: Tim Belden <Tim Belden/Enron@EnronXGate>",
     "X-Folder: \\Phillip_Allen_Jan2002_1\\Allen, Phillip K.\\'Sent Mail",
@@ -38,6 +39,7 @@ def test_standard_email(spark):
     assert row.cc_addresses == []
     assert row.subject == "Forecast"
     assert row.body == "Here is our forecast"
+    assert row.transfer_encoding == "7bit"
     assert row.x_folder.endswith("'Sent Mail")
 
 

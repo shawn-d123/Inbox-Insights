@@ -95,7 +95,8 @@ def parse_emails(raw: DataFrame) -> DataFrame:
     Parse the bronze table (columns `file`, `message`) into one row per email.
 
     Output columns: file, mailbox, message_id, date_raw, sent_at, sent_at_local,
-    sender, to_addresses, cc_addresses, bcc_addresses, subject, body, x_folder.
+    sender, to_addresses, cc_addresses, bcc_addresses, subject, body,
+    transfer_encoding, x_folder.
     Nothing is filtered here; bad rows are kept with nulls so the quality step
     can quarantine them with a reason.
     """
@@ -121,5 +122,8 @@ def parse_emails(raw: DataFrame) -> DataFrame:
         parse_address_list(extract_header(F.col("_headers"), "Bcc")).alias("bcc_addresses"),
         extract_header(F.col("_headers"), "Subject").alias("subject"),
         "body",
+        F.lower(extract_header(F.col("_headers"), "Content-Transfer-Encoding")).alias(
+            "transfer_encoding"
+        ),
         extract_header(F.col("_headers"), "X-Folder").alias("x_folder"),
     )
