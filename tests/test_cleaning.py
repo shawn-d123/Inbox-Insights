@@ -5,6 +5,7 @@ from pyspark.sql import functions as F
 
 from inbox_insights.cleaning import (
     clean_body,
+    correct_sent_at,
     is_forward,
     is_reply,
     normalise_subject,
@@ -123,6 +124,29 @@ def test_normalise_subject(spark, subject, expected):
 def test_reply_and_forward_flags(spark, subject, reply, forward):
     assert apply(spark, is_reply(F.col("value")), subject) is reply
     assert apply(spark, is_forward(F.col("value")), subject) is forward
+
+
+@pytest.mark.parametrize("session_tz", ["UTC", "Asia/Tokyo"])
+def test_lotus_notes_times_are_corrected(spark, session_tz):
+    # Header said "Tue, 11 Jul 2000 09:24:00 -0700"; the Lotus forward stamp in the
+    # same email said 04:24 PM Houston time.
+    header_instant = datetime(2000, 7, 11, 16, 24, tzinfo=UTC)
+    df = spark.createDataFrame(
+        [("lotus_notes", header_instant), ("outlook", header_instant)],
+        "source string, sent_at timestamp",
+    )
+    corrected = correct_sent_at(F.col("sent_at"), F.col("source"))
+
+    original_tz = spark.conf.get("spark.sql.session.timeZone")
+    spark.conf.set("spark.sql.session.timeZone", session_tz)
+    try:
+        rows = df.select("source", to_houston_time(corrected).alias("houston")).collect()
+    finally:
+        spark.conf.set("spark.sql.session.timeZone", original_tz)
+
+    houston = {r.source: r.houston for r in rows}
+    assert houston["lotus_notes"] == datetime(2000, 7, 11, 16, 24)
+    assert houston["outlook"] == datetime(2000, 7, 11, 11, 24)
 
 
 def test_houston_time_handles_daylight_saving(spark):

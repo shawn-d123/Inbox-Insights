@@ -83,6 +83,16 @@ def clean_body(body: Column, encoding: Column) -> Column:
     return normalise_whitespace(strip_quoted_text(decode_quoted_printable(body, encoding)))
 
 
+def full_body(body: Column, encoding: Column) -> Column:
+    """
+    Decode and tidy the body but keep forwarded and quoted text.
+
+    Used for topic flags such as meetings: a forwarded meeting notice is still an
+    email about a meeting, even though the sender wrote nothing themselves.
+    """
+    return normalise_whitespace(decode_quoted_printable(body, encoding))
+
+
 def normalise_subject(subject: Column) -> Column:
     """
     Lower-case a subject and strip any stack of Re:/Fw:/Fwd: prefixes.
@@ -101,6 +111,32 @@ def is_reply(subject: Column) -> Column:
 
 def is_forward(subject: Column) -> Column:
     return F.coalesce(F.lower(subject).rlike(r"^\s*(fw|fwd)\s*:"), F.lit(False))
+
+
+def wall_clock_to_instant(wall_clock: Column, tz: str) -> Column:
+    """
+    Turn a zone-less wall-clock time into a real instant, given the zone it was in.
+
+    Formatting to text and parsing back with an explicit zone avoids any
+    dependence on the session time zone.
+    """
+    text = F.concat(F.date_format(wall_clock, "yyyy-MM-dd HH:mm:ss"), F.lit(f" {tz}"))
+    return F.to_timestamp(text, "yyyy-MM-dd HH:mm:ss VV")
+
+
+def correct_sent_at(sent_at: Column, source: Column) -> Column:
+    """
+    Fix the shifted Date header on emails exported from Lotus Notes.
+
+    In the Lotus Notes mailboxes the Date header claims to be Pacific time, but its
+    UTC equivalent is actually Houston local time. Checked against the Lotus
+    "Forwarded by ... on <time>" stamps in the bodies, which are always exactly 7
+    hours (PDT) or 8 hours (PST) after the header. Outlook exports are correct.
+    """
+    houston_wall_clock = F.convert_timezone(None, F.lit("UTC"), sent_at)
+    return F.when(
+        source == "lotus_notes", wall_clock_to_instant(houston_wall_clock, HOUSTON_TZ)
+    ).otherwise(sent_at)
 
 
 def to_houston_time(sent_at: Column) -> Column:

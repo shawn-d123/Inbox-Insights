@@ -98,7 +98,7 @@ def parse_emails(raw: DataFrame) -> DataFrame:
 
     Output columns: file, mailbox, message_id, date_raw, sent_at, sent_at_local,
     sender, to_addresses, cc_addresses, bcc_addresses, subject, body,
-    transfer_encoding, x_folder.
+    transfer_encoding, x_folder, source_system.
     Nothing is filtered here; bad rows are kept with nulls so the quality step
     can quarantine them with a reason.
     """
@@ -128,4 +128,20 @@ def parse_emails(raw: DataFrame) -> DataFrame:
             "transfer_encoding"
         ),
         extract_header(F.col("_headers"), "X-Folder").alias("x_folder"),
+        source_system(extract_header(F.col("_headers"), "X-FileName")).alias("source_system"),
+    )
+
+
+def source_system(x_filename: Column) -> Column:
+    """
+    Which mail system the mailbox was exported from, based on the X-FileName header.
+
+    Matters because Lotus Notes (.nsf) exports carry a shifted Date header; see
+    cleaning.correct_sent_at.
+    """
+    name = F.lower(F.trim(x_filename))
+    return (
+        F.when(name.endswith(".nsf"), "lotus_notes")
+        .when(name.endswith(".pst"), "outlook")
+        .otherwise("unknown")
     )

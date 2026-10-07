@@ -21,6 +21,7 @@ STANDARD_HEADERS = [
     "X-From: Phillip K Allen",
     "X-To: Tim Belden <Tim Belden/Enron@EnronXGate>",
     "X-Folder: \\Phillip_Allen_Jan2002_1\\Allen, Phillip K.\\'Sent Mail",
+    "X-FileName: pallen (Non-Privileged).pst",
 ]
 
 
@@ -41,6 +42,16 @@ def test_standard_email(spark):
     assert row.body == "Here is our forecast"
     assert row.transfer_encoding == "7bit"
     assert row.x_folder.endswith("'Sent Mail")
+    assert row.source_system == "outlook"
+
+
+@pytest.mark.parametrize(
+    ("x_filename", "expected"),
+    [("X-FileName: kmann.nsf", "lotus_notes"), ("X-FileName: ", "unknown")],
+)
+def test_source_system(spark, x_filename, expected):
+    headers = [x_filename if h.startswith("X-FileName") else h for h in STANDARD_HEADERS]
+    assert parse_one(spark, make_message(headers)).source_system == expected
 
 
 def test_date_keeps_both_instant_and_wall_clock(spark):

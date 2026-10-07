@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath("../src"))
 
 from pyspark.sql import functions as F
 
+from inbox_insights.frames import save_table
 from inbox_insights.parsing import parse_emails
 from inbox_insights.quality import split_by_quality
 from inbox_insights.silver import add_clean_columns, build_recipients, deduplicate
@@ -30,13 +31,10 @@ passed, quarantined = split_by_quality(parsed)
 emails, stages = deduplicate(add_clean_columns(passed))
 
 
-def save(df, table):
-    df.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(f"{catalog}.{table}")
-
-
-save(quarantined, "silver.dq_quarantine")
-save(emails, "silver.emails")
-save(build_recipients(spark.table(f"{catalog}.silver.emails")), "silver.recipients")
+silver = f"{catalog}.silver"
+save_table(quarantined, f"{silver}.dq_quarantine")
+save_table(emails, f"{silver}.emails")
+save_table(build_recipients(spark.table(f"{silver}.emails")), f"{silver}.recipients")
 
 # COMMAND ----------
 

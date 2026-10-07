@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame, Window
+from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 
 from inbox_insights.cleaning import (
     clean_body,
+    correct_sent_at,
+    full_body,
     is_forward,
     is_reply,
     normalise_subject,
     to_houston_time,
 )
+from inbox_insights.frames import keep_first
 
 # The same email often sits in several folders of one mailbox (inbox, all_documents,
 # discussion_threads) and in the mailboxes of everyone it was sent to. These copies
@@ -20,14 +23,17 @@ CONTENT_KEY = ["sender", "sent_at", "subject", "body_hash"]
 
 
 def add_clean_columns(emails: DataFrame) -> DataFrame:
-    """Add the cleaned body, threading helpers and Houston time to parsed emails."""
+    """Add the cleaned body, threading helpers and corrected times to parsed emails."""
+    sent_at = correct_sent_at(F.col("sent_at"), F.col("source_system"))
     return emails.select(
         "message_id",
         "file",
         "mailbox",
         "x_folder",
-        "sent_at",
-        to_houston_time(F.col("sent_at")).alias("sent_at_houston"),
+        "source_system",
+        F.col("sent_at").alias("sent_at_header"),
+        sent_at.alias("sent_at"),
+        to_houston_time(sent_at).alias("sent_at_houston"),
         "sender",
         "to_addresses",
         "cc_addresses",
@@ -36,23 +42,9 @@ def add_clean_columns(emails: DataFrame) -> DataFrame:
         is_reply(F.col("subject")).alias("is_reply"),
         is_forward(F.col("subject")).alias("is_forward"),
         clean_body(F.col("body"), F.col("transfer_encoding")).alias("body_clean"),
+        full_body(F.col("body"), F.col("transfer_encoding")).alias("body_full"),
         # Hash the raw body so exact copies match even if cleaning rules change later.
         F.sha2(F.coalesce(F.col("body"), F.lit("")), 256).alias("body_hash"),
-    )
-
-
-def keep_first(df: DataFrame, keys: list[str], order_by: str = "file") -> DataFrame:
-    """
-    Keep one row per key, choosing the first by `order_by` so reruns are repeatable.
-
-    Plain dropDuplicates keeps an arbitrary row, which would make the chosen file
-    path (and so the mailbox) change between runs.
-    """
-    window = Window.partitionBy(*keys).orderBy(order_by)
-    return (
-        df.withColumn("_rank", F.row_number().over(window))
-        .filter(F.col("_rank") == 1)
-        .drop("_rank")
     )
 
 
@@ -60,12 +52,24 @@ def deduplicate(emails: DataFrame) -> tuple[DataFrame, dict[str, DataFrame]]:
     """
     Remove duplicates by Message-ID, then by sender + sent time + subject + body.
 
-    Returns the de-duplicated frame and the frame after each pass, so the caller
-    can record row counts without this function triggering any Spark actions.
+    The copy with the alphabetically first file path is kept, so the mailbox a
+    row is attributed to stays stable between runs. Returns the de-duplicated
+    frame and the frame after each pass, so the caller can record row counts
+    without this function triggering any Spark actions.
     """
-    by_id = keep_first(emails, ["message_id"])
-    by_content = keep_first(by_id, CONTENT_KEY)
+    by_id = keep_first(emails, ["message_id"], "file")
+    by_content = keep_first(by_id, CONTENT_KEY, "file")
     return by_content, {"after_message_id": by_id, "after_content": by_content}
+
+
+def _tag_addresses(column: str, recipient_type: str) -> Column:
+    """Turn an array of addresses into an array of (recipient, recipient_type) structs."""
+    return F.transform(
+        column,
+        lambda address: F.struct(
+            address.alias("recipient"), F.lit(recipient_type).alias("recipient_type")
+        ),
+    )
 
 
 def build_recipients(emails: DataFrame) -> DataFrame:
@@ -76,21 +80,10 @@ def build_recipients(emails: DataFrame) -> DataFrame:
     Cc, so including it would double count every Cc recipient. If an address is
     in both To and Cc it is kept once, as "to".
     """
-    def tagged(column: str, recipient_type: str):
-        return F.transform(
-            column,
-            lambda a: F.struct(a.alias("recipient"), F.lit(recipient_type).alias("recipient_type")),
-        )
-
-    exploded = emails.select(
-        "message_id",
-        F.explode(F.concat(tagged("to_addresses", "to"), tagged("cc_addresses", "cc"))).alias("r"),
-    ).select("message_id", "r.recipient", "r.recipient_type")
-
-    # "to" > "cc" alphabetically, so descending order ranks the "to" row first.
-    window = Window.partitionBy("message_id", "recipient").orderBy(F.col("recipient_type").desc())
-    return (
-        exploded.withColumn("_rank", F.row_number().over(window))
-        .filter(F.col("_rank") == 1)
-        .drop("_rank")
+    tagged = F.concat(_tag_addresses("to_addresses", "to"), _tag_addresses("cc_addresses", "cc"))
+    exploded = emails.select("message_id", F.explode(tagged).alias("r")).select(
+        "message_id", "r.recipient", "r.recipient_type"
     )
+
+    # "to" > "cc" alphabetically, so descending order keeps the "to" row.
+    return keep_first(exploded, ["message_id", "recipient"], F.col("recipient_type").desc())
