@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Tests and tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# Databricks bundle state
+.databricks/
+
+# Spark local output
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Data stays out of git (the Enron CSV is 1.4 GB)
+data/

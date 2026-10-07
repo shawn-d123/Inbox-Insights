@@ -1,0 +1,16 @@
+bundle:
+  name: inbox-insights
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the bronze, silver and gold schemas
+    default: inbox_insights
+
+targets:
+  dev:
+    # Development mode prefixes resource names with the user and pauses all schedules.
+    mode: development
+    default: true
