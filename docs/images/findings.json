@@ -1,0 +1,122 @@
+{
+  "pipeline": {
+    "bronze_rows": 517401,
+    "quarantined": 1313,
+    "after_message_id_dedup": 516088,
+    "after_content_dedup": 254411,
+    "recipient_rows": 1373871,
+    "passed_quality": 516088
+  },
+  "emails": 254411,
+  "meeting_share": 0.17111288426994115,
+  "after_hours_share": 0.17725255590363626,
+  "weekend_share": 0.0388387294574527,
+  "internal_share": 0.6181847483009776,
+  "busiest_week": "2001-10-22",
+  "busiest_week_emails": 9820,
+  "matched_replies": 27204,
+  "median_reply_minutes": 102.225,
+  "share_replied_within_2h": 0.525327157770916,
+  "top_senders": [
+    {
+      "person": "jeff.dasovich@enron.com",
+      "sent_count": 5524,
+      "median_response_minutes": 116.5
+    },
+    {
+      "person": "kay.mann@enron.com",
+      "sent_count": 4865,
+      "median_response_minutes": 58.0
+    },
+    {
+      "person": "sara.shackleton@enron.com",
+      "sent_count": 4442,
+      "median_response_minutes": 108.0
+    },
+    {
+      "person": "tana.jones@enron.com",
+      "sent_count": 4157,
+      "median_response_minutes": 35.0
+    },
+    {
+      "person": "vince.kaminski@enron.com",
+      "sent_count": 3953,
+      "median_response_minutes": 274.0
+    },
+    {
+      "person": "chris.germany@enron.com",
+      "sent_count": 3626,
+      "median_response_minutes": 128.1
+    },
+    {
+      "person": "matthew.lenhart@enron.com",
+      "sent_count": 2780,
+      "median_response_minutes": 144.0
+    },
+    {
+      "person": "debra.perlingiere@enron.com",
+      "sent_count": 2438,
+      "median_response_minutes": 113.0
+    },
+    {
+      "person": "gerald.nemec@enron.com",
+      "sent_count": 2231,
+      "median_response_minutes": 143.5
+    },
+    {
+      "person": "mark.taylor@enron.com",
+      "sent_count": 1966,
+      "median_response_minutes": 345.5
+    }
+  ],
+  "model": {
+    "model": {
+      "threshold": 0.25,
+      "precision": 0.20807091205971542,
+      "recall": 0.4435604177026355,
+      "f1": 0.2832645284217212,
+      "test_pr_auc": 0.20427669868780415,
+      "test_roc_auc": 0.6846940386320864,
+      "run_id": "63a8ea21d54e4ffb894e4a2a048719cb",
+      "test_from": "2001-11-19 15:20:20",
+      "test_rows": 17966,
+      "test_positive_rate": 0.11193365245463653
+    },
+    "model_at_0.5": {
+      "threshold": 0.5,
+      "precision": 0.24962999506660088,
+      "recall": 0.25161611138736945,
+      "f1": 0.2506191183754334,
+      "test_pr_auc": 0.20427669868780415,
+      "test_roc_auc": 0.6846940386320864,
+      "run_id": "63a8ea21d54e4ffb894e4a2a048719cb",
+      "test_from": "2001-11-19 15:20:20",
+      "test_rows": 17966,
+      "test_positive_rate": 0.11193365245463653
+    },
+    "baseline_always_no": {
+      "threshold": 0.5,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "test_pr_auc": null,
+      "test_roc_auc": null,
+      "run_id": "63a8ea21d54e4ffb894e4a2a048719cb",
+      "test_from": "2001-11-19 15:20:20",
+      "test_rows": 17966,
+      "test_positive_rate": 0.11193365245463653
+    },
+    "baseline_prior_reply_rule": {
+      "threshold": 0.5,
+      "precision": 0.1701260664714122,
+      "recall": 0.6643460964694182,
+      "f1": 0.2708840227088402,
+      "test_pr_auc": null,
+      "test_roc_auc": null,
+      "run_id": "63a8ea21d54e4ffb894e4a2a048719cb",
+      "test_from": "2001-11-19 15:20:20",
+      "test_rows": 17966,
+      "test_positive_rate": 0.11193365245463653
+    }
+  }
+}
